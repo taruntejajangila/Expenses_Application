@@ -517,7 +517,7 @@ class _MonthlyOverviewState extends State<MonthlyOverview> {
                           IconButton(
                             icon: const Icon(Icons.add),
                             onPressed: () {
-                              // TODO: Implement add due/reminder functionality
+                              Navigator.pushNamed(context, '/add-reminder');
                             },
                             color: Theme.of(context).primaryColor,
                           ),

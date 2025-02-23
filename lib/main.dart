@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
-import 'widgets/new_page.dart'; // Importing the new page
-
+import 'widgets/add_reminder.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'widgets/expenses.dart';
 
@@ -17,6 +16,7 @@ var kDarkColorScheme = ColorScheme.fromSeed(
 void main() {
   runApp(
     MaterialApp(
+      routes: {'/add-reminder': (context) => AddReminder()},
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
