@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'Monthly_Overview.dart'; // Importing the new page
+import 'Monthly_Overview.dart';
 
 import '../models/expense.dart';
 import '../models/custom_category.dart';
@@ -18,8 +18,19 @@ class _ExpensesState extends State<Expenses> {
   final List<Expense> _registeredExpenses = [];
   final List<CustomCategory> _customCategories = [];
 
+  @override
+  void initState() {
+    super.initState();
+    print('Expenses widget initialized');
+    print('Initial custom categories: ${_customCategories.length}');
+  }
+
   void _openAddExpenseOverlay() {
-    print('Opening add expense overlay');
+    print('\n=== Opening Add Expense Overlay ===');
+    print(
+      'Custom categories before opening: ${_customCategories.map((c) => "${c.name}(${c.isExpense ? "expense" : "income"})").toList()}',
+    );
+
     showModalBottomSheet(
       useSafeArea: true,
       isScrollControlled: true,
@@ -28,22 +39,69 @@ class _ExpensesState extends State<Expenses> {
           (ctx) => NewExpense(
             onAddExpense: _addExpense,
             customCategories: _customCategories,
-            onCustomCategoryAdded: _addCustomCategory,
+            onCustomCategoryAdded: _handleNewCategory,
             expenses: _registeredExpenses,
           ),
     );
   }
 
-  void _addExpense(Expense expense, {bool closeForm = true}) {
+  void _handleNewCategory(CustomCategory category) {
+    print('\n=== Adding New Category ===');
+    print('Name: ${category.name}');
+    print('IsExpense: ${category.isExpense}');
+    print('ID: ${category.id}');
+
+    // Check if category already exists
+    final exists = _customCategories.any(
+      (c) =>
+          c.name.toLowerCase() == category.name.toLowerCase() &&
+          c.isExpense == category.isExpense,
+    );
+
+    if (!exists) {
+      setState(() {
+        _customCategories.add(category);
+      });
+
+      print('Category added successfully');
+      print(
+        'Updated categories: ${_customCategories.map((c) => "${c.name}(${c.isExpense ? "expense" : "income"})").toList()}',
+      );
+
+      // Show success message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Added ${category.name} category'),
+          backgroundColor: Colors.green,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    } else {
+      print('Category already exists');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('${category.name} already exists'),
+          backgroundColor: Colors.red,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+    }
+  }
+
+  void _addExpense(Expense expense, {required bool closeForm}) {
     setState(() {
       _registeredExpenses.add(expense);
     });
-  }
 
-  void _addCustomCategory(CustomCategory category) {
-    setState(() {
-      _customCategories.add(category);
-    });
+    if (closeForm && Navigator.canPop(context)) {
+      Navigator.pop(context);
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => MonthlyOverview(expenses: _registeredExpenses),
+        ),
+      );
+    }
   }
 
   void _removeExpense(Expense expense) {
@@ -115,7 +173,7 @@ class _ExpensesState extends State<Expenses> {
                 ),
               );
             },
-            icon: const Icon(Icons.navigate_next), // Icon for navigation
+            icon: const Icon(Icons.navigate_next),
           ),
         ],
       ),

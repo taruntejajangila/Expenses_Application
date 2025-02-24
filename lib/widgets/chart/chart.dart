@@ -69,48 +69,68 @@ class Chart extends StatelessWidget {
       child: Column(
         children: [
           // Summary Row
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 8.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                _SummaryCard(
-                  title: 'Income',
-                  amount: totalIncome,
-                  color: Colors.green,
-                ),
-                _SummaryCard(
-                  title: 'Expense',
-                  amount: totalExpense,
-                  color: Colors.red,
-                ),
-                _SummaryCard(
-                  title: 'Balance',
-                  amount: totalIncome - totalExpense,
-                  color:
-                      (totalIncome - totalExpense) >= 0
-                          ? Colors.green
-                          : Colors.red,
-                ),
-              ],
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8.0),
+              child: Row(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(right: 8.0),
+                    child: _SummaryCard(
+                      title: 'Income',
+                      amount: totalIncome,
+                      color: Colors.green,
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.only(right: 8.0),
+                    child: _SummaryCard(
+                      title: 'Expense',
+                      amount: totalExpense,
+                      color: Colors.red,
+                    ),
+                  ),
+                  _SummaryCard(
+                    title: 'Balance',
+                    amount: totalIncome - totalExpense,
+                    color:
+                        (totalIncome - totalExpense) >= 0
+                            ? Colors.green
+                            : Colors.red,
+                  ),
+                ],
+              ),
             ),
           ),
           const SizedBox(height: 16),
+          // Chart Bars
           Expanded(
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                for (final categoryTotal in categoryTotals)
-                  ChartBar(
-                    fill:
-                        maxTotalAmount == 0
-                            ? 0
-                            : categoryTotal.totalAmount / maxTotalAmount,
-                  ),
-              ],
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                return Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children:
+                      categoryTotals.map((categoryTotal) {
+                        return SizedBox(
+                          width:
+                              constraints.maxWidth / categoryTotals.length - 8,
+                          child: ChartBar(
+                            fill:
+                                maxTotalAmount == 0
+                                    ? 0
+                                    : categoryTotal.totalAmount /
+                                        maxTotalAmount,
+                          ),
+                        );
+                      }).toList(),
+                );
+              },
             ),
           ),
           const SizedBox(height: 12),
+          // Category Labels
           Row(
             children:
                 categoryTotals

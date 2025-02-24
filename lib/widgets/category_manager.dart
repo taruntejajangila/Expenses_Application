@@ -23,29 +23,54 @@ class CategoryManager extends StatefulWidget {
 class _CategoryManagerState extends State<CategoryManager> {
   final _nameController = TextEditingController();
   IconData _selectedIcon = Icons.category;
+  List<Category> _currentCategories = [];
 
-  final List<IconData> _availableIcons = [
-    Icons.category,
-    Icons.shopping_basket,
-    Icons.restaurant,
-    Icons.sports_esports,
-    Icons.pets,
-    Icons.medical_services,
-    Icons.home,
-    Icons.car_rental,
-    Icons.flight,
-    Icons.sports,
-    Icons.music_note,
-    Icons.book,
-    Icons.laptop,
-    Icons.phone_android,
-    Icons.camera_alt,
-    Icons.attach_money,
-    Icons.account_balance,
-    Icons.real_estate_agent,
-    Icons.handyman,
-    Icons.emoji_events,
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _updateCategories();
+  }
+
+  @override
+  void didUpdateWidget(CategoryManager oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.customCategories != widget.customCategories ||
+        oldWidget.isExpense != widget.isExpense) {
+      _updateCategories();
+    }
+  }
+
+  void _updateCategories() {
+    final predefinedCategories =
+        widget.isExpense
+            ? Categories.expenseCategories
+            : Categories.incomeCategories;
+
+    final customCategoriesForType =
+        widget.customCategories
+            .where((cat) => cat.isExpense == widget.isExpense)
+            .map((cat) {
+              print('Converting custom category: ${cat.name}');
+              return Category.fromCustomCategory(cat);
+            })
+            .toList();
+
+    setState(() {
+      _currentCategories = [
+        ...predefinedCategories,
+        ...customCategoriesForType,
+      ];
+    });
+
+    print('\n=== Categories Update ===');
+    print(
+      'Predefined categories: ${predefinedCategories.map((c) => c.name).toList()}',
+    );
+    print(
+      'Custom categories: ${customCategoriesForType.map((c) => c.name).toList()}',
+    );
+    print('Total categories: ${_currentCategories.length}');
+  }
 
   void _showAddCategoryDialog() {
     showDialog<void>(
@@ -68,7 +93,7 @@ class _CategoryManagerState extends State<CategoryManager> {
                           decoration: const InputDecoration(
                             labelText: 'Category Name',
                             border: OutlineInputBorder(),
-                            counterText: '', // Hides the default counter
+                            counterText: '',
                           ),
                         ),
                         const SizedBox(height: 16),
@@ -149,12 +174,14 @@ class _CategoryManagerState extends State<CategoryManager> {
                             icon: _selectedIcon,
                             isExpense: widget.isExpense,
                           );
+
+                          print('\n=== Adding New Category ===');
+                          print('Name: ${newCategory.name}');
+                          print('IsExpense: ${newCategory.isExpense}');
+
                           widget.onCustomCategoryAdded(newCategory);
-                          Navigator.pop(context);
                           _nameController.clear();
-                          setState(() {
-                            _selectedIcon = Icons.category;
-                          });
+                          Navigator.pop(context);
                         }
                       },
                       style: ElevatedButton.styleFrom(
@@ -182,6 +209,29 @@ class _CategoryManagerState extends State<CategoryManager> {
     );
   }
 
+  final List<IconData> _availableIcons = [
+    Icons.category,
+    Icons.shopping_basket,
+    Icons.restaurant,
+    Icons.sports_esports,
+    Icons.pets,
+    Icons.medical_services,
+    Icons.home,
+    Icons.car_rental,
+    Icons.flight,
+    Icons.sports,
+    Icons.music_note,
+    Icons.book,
+    Icons.laptop,
+    Icons.phone_android,
+    Icons.camera_alt,
+    Icons.attach_money,
+    Icons.account_balance,
+    Icons.real_estate_agent,
+    Icons.handyman,
+    Icons.emoji_events,
+  ];
+
   @override
   void dispose() {
     _nameController.dispose();
@@ -190,17 +240,6 @@ class _CategoryManagerState extends State<CategoryManager> {
 
   @override
   Widget build(BuildContext context) {
-    final predefinedCategories =
-        widget.isExpense
-            ? Categories.expenseCategories
-            : Categories.incomeCategories;
-
-    final customCategoriesForType =
-        widget.customCategories
-            .where((cat) => cat.isExpense == widget.isExpense)
-            .map((cat) => Category.fromCustomCategory(cat))
-            .toList();
-
     return Column(
       children: [
         Text(
@@ -211,20 +250,66 @@ class _CategoryManagerState extends State<CategoryManager> {
         ),
         const SizedBox(height: 16),
         SizedBox(
+          height: 300,
           child: GridView.count(
             shrinkWrap: true,
             physics: const ClampingScrollPhysics(),
             crossAxisCount: 4,
             mainAxisSpacing: 20,
             crossAxisSpacing: 20,
-            children: [
-              ...predefinedCategories.map((category) {
-                return _buildCategoryTile(category);
-              }),
-              ...customCategoriesForType.map((category) {
-                return _buildCategoryTile(category);
-              }),
-            ],
+            children:
+                _currentCategories.map((category) {
+                  return GestureDetector(
+                    onTap: () {
+                      widget.onCategorySelected(category);
+                      Navigator.pop(context);
+                    },
+                    child: Container(
+                      width: double.infinity,
+                      height: double.infinity,
+                      decoration: BoxDecoration(
+                        color:
+                            category.isCustom
+                                ? Colors.grey[300]
+                                : Colors.grey[200],
+                        shape: BoxShape.rectangle,
+                        borderRadius: BorderRadius.circular(12),
+                        border:
+                            category.isCustom
+                                ? Border.all(
+                                  color: Theme.of(context).primaryColor,
+                                )
+                                : null,
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            category.icon,
+                            size: 32,
+                            color:
+                                category.isCustom
+                                    ? Theme.of(context).primaryColor
+                                    : Colors.black,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            category.name.toUpperCase(),
+                            style: TextStyle(
+                              color:
+                                  category.isCustom
+                                      ? Theme.of(context).primaryColor
+                                      : Colors.black,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 11,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                }).toList(),
           ),
         ),
         const SizedBox(height: 16),
@@ -237,40 +322,6 @@ class _CategoryManagerState extends State<CategoryManager> {
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildCategoryTile(Category category) {
-    return GestureDetector(
-      onTap: () {
-        widget.onCategorySelected(category);
-        Navigator.pop(context);
-      },
-      child: Container(
-        width: double.infinity,
-        height: double.infinity,
-        decoration: BoxDecoration(
-          color: Colors.grey[200],
-          shape: BoxShape.rectangle,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(category.icon, size: 32, color: Colors.black),
-            const SizedBox(height: 8),
-            Text(
-              category.name.toUpperCase(),
-              style: const TextStyle(
-                color: Colors.black,
-                fontWeight: FontWeight.bold,
-                fontSize: 11,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

@@ -24,6 +24,12 @@ class Category {
   final bool isCustom;
 
   factory Category.fromCustomCategory(CustomCategory customCategory) {
+    print('Converting CustomCategory to Category:');
+    print('  - Name: ${customCategory.name}');
+    print('  - IsExpense: ${customCategory.isExpense}');
+    print('  - Icon: ${customCategory.icon}');
+    print('  - ID: ${customCategory.id}');
+
     return Category(
       id: customCategory.id,
       name: customCategory.name,
@@ -31,6 +37,11 @@ class Category {
       isExpense: customCategory.isExpense,
       isCustom: true,
     );
+  }
+
+  @override
+  String toString() {
+    return 'Category(name: $name, isExpense: $isExpense, isCustom: $isCustom)';
   }
 }
 

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../models/expense.dart';
 import '../models/custom_category.dart';
-import 'category_manager.dart';
+import 'category_picker_modal.dart';
 import 'Monthly_Overview.dart';
 
 final formatter = DateFormat.yMd();
@@ -17,7 +17,6 @@ class NewExpense extends StatefulWidget {
   });
 
   final List<Expense> expenses;
-
   final void Function(Expense expense, {required bool closeForm}) onAddExpense;
   final List<CustomCategory> customCategories;
   final void Function(CustomCategory category) onCustomCategoryAdded;
@@ -33,11 +32,26 @@ class _NewExpenseState extends State<NewExpense> {
   DateTime _selectedDate = DateTime.now();
   late Category _selectedCategory;
   TransactionType _selectedType = TransactionType.expense;
+  List<CustomCategory> _localCustomCategories = [];
 
   @override
   void initState() {
     super.initState();
     _selectedCategory = Categories.expenseCategories.first;
+    _localCustomCategories = List.from(widget.customCategories);
+    print(
+      'NewExpense initialized with ${_localCustomCategories.length} custom categories',
+    );
+  }
+
+  @override
+  void didUpdateWidget(NewExpense oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.customCategories != widget.customCategories) {
+      setState(() {
+        _localCustomCategories = List.from(widget.customCategories);
+      });
+    }
   }
 
   String? _titleError;
@@ -85,32 +99,41 @@ class _NewExpenseState extends State<NewExpense> {
   }
 
   void _presentCategoryPicker() {
+    print('\n=== Opening Category Picker ===');
+    print(
+      'Current type: ${_selectedType == TransactionType.expense ? "Expense" : "Income"}',
+    );
+    print(
+      'Available custom categories: ${_localCustomCategories.map((c) => "${c.name}(${c.isExpense ? "expense" : "income"})").toList()}',
+    );
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       builder:
-          (ctx) => Container(
+          (ctx) => Padding(
             padding: EdgeInsets.only(
-              top: 24,
-              left: 24,
-              right: 24,
-              bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
+              bottom: MediaQuery.of(ctx).viewInsets.bottom,
             ),
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-            ),
-            child: SingleChildScrollView(
-              child: CategoryManager(
-                isExpense: _selectedType == TransactionType.expense,
-                onCategorySelected: (category) {
-                  setState(() {
-                    _selectedCategory = category;
-                  });
-                },
-                customCategories: widget.customCategories,
-                onCustomCategoryAdded: widget.onCustomCategoryAdded,
-              ),
+            child: CategoryPickerModal(
+              isExpense: _selectedType == TransactionType.expense,
+              onCategorySelected: (category) {
+                print(
+                  'Category selected: ${category.name} (isCustom: ${category.isCustom})',
+                );
+                setState(() {
+                  _selectedCategory = category;
+                });
+                Navigator.pop(context);
+              },
+              customCategories: _localCustomCategories,
+              onCustomCategoryAdded: (category) {
+                print('Adding new custom category: ${category.name}');
+                widget.onCustomCategoryAdded(category);
+                setState(() {
+                  _localCustomCategories.add(category);
+                });
+              },
             ),
           ),
     );
@@ -138,31 +161,27 @@ class _NewExpenseState extends State<NewExpense> {
     );
 
     if (!addAnother) {
-      Navigator.pop(context); // Close the bottom sheet
-      // Navigate to Monthly Overview
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (context) => MonthlyOverview(expenses: widget.expenses),
-        ),
-      );
+      if (Navigator.canPop(context)) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => MonthlyOverview(expenses: widget.expenses),
+          ),
+        );
+      }
     } else {
-      // Store the current transaction type and category
       final currentType = _selectedType;
       final currentCategory = _selectedCategory;
 
-      // Clear form and reset date
       _titleController.clear();
       _amountController.clear();
       setState(() {
         _selectedDate = DateTime.now();
         _titleError = null;
         _amountError = null;
-        // Maintain the same transaction type and category
         _selectedType = currentType;
         _selectedCategory = currentCategory;
       });
-      // Request focus on title field
       _titleFocusNode.requestFocus();
     }
   }
@@ -177,7 +196,6 @@ class _NewExpenseState extends State<NewExpense> {
 
   @override
   Widget build(BuildContext context) {
-    // Update selected category when transaction type changes
     if (_selectedType == TransactionType.expense &&
         !_selectedCategory.isExpense) {
       _selectedCategory = Categories.expenseCategories.first;
@@ -448,15 +466,17 @@ class _NewExpenseState extends State<NewExpense> {
               ),
               const SizedBox(height: 24),
               Row(
-                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   SizedBox(
-                    width: 220,
+                    width: 250,
                     child: TextButton(
                       onPressed: () => _submitExpenseData(addAnother: true),
                       style: TextButton.styleFrom(
                         foregroundColor: _transactionColor,
-                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
                       ),
                       child: Text(
                         'Save $transactionTypeText & Add Another',
@@ -468,7 +488,7 @@ class _NewExpenseState extends State<NewExpense> {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 8),
                   SizedBox(
                     width: 140,
                     child: ElevatedButton(
@@ -476,20 +496,20 @@ class _NewExpenseState extends State<NewExpense> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: _transactionColor,
                         foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),
                       ),
-                      child: Center(
-                        child: Text(
-                          'Save $transactionTypeText',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                          ),
+                      child: Text(
+                        'Save $transactionTypeText',
+                        maxLines: 1,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
                     ),
